@@ -32,6 +32,8 @@ Use for:
 
 import argparse
 import logging
+import os
+import subprocess
 
 from .utils import rel_or_abs_import
 
@@ -56,6 +58,13 @@ def interesting(cli_args, temp_prefix):
         help="Set the cookie that is to be altered in the testcase. Defaults to "
         "'%(default)s'.",
     )
+    parser.add_argument(
+        "-p",
+        "--PREPROCESS",
+        default="",
+        dest="preprocess_script",
+        help="Set the preprocess script to be run before running the condition script.",
+    )
     parser.add_argument("cmd_with_flags", nargs=argparse.REMAINDER)
     args = parser.parse_args(cli_args)
 
@@ -78,6 +87,13 @@ def interesting(cli_args, temp_prefix):
             s.replace("REPEATNUM", str(i)) for s in condition_args
         ]
         log.info("Repeat number %d:", i)
+
+        if args.preprocess_script:
+            result = subprocess.run([os.path.expanduser(x) for x in args.preprocess_script.split()],
+                                    check=False, timeout=99)
+            if result.returncode != 0:
+                return False
+
         if condition_script.interesting(replaced_condition_args, temp_prefix):
             return True
 
